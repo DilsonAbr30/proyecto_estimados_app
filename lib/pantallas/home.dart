@@ -1,37 +1,99 @@
 import 'package:flutter/material.dart';
-import 'package:proyeto_estimados/pantallas/servicios.dart'; 
-import 'package:proyeto_estimados/pantallas/cotizacion.dart'; 
+import 'package:proyeto_estimados/pantallas/servicios.dart';
+import 'package:proyeto_estimados/pantallas/cotizacion.dart';
+// --- ¡IMPORTACIONES AÑADIDAS! ---
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-// Las rutas ya no son necesarias si usamos MaterialPageRoute directamente
-// const String serviceRoute = '/service-selection'; 
-// const String quoteRoute = '/client-quote';
-
-class HomeClienteScreen extends StatelessWidget {
+class HomeClienteScreen extends StatefulWidget {
   const HomeClienteScreen({super.key});
 
   @override
+  State<HomeClienteScreen> createState() => _HomeClienteScreenState();
+}
+
+class _HomeClienteScreenState extends State<HomeClienteScreen> {
+  // --- LÓGICA AÑADIDA PARA OBTENER EL NOMBRE ---
+  String _userName = '...'; // Valor inicial mientras carga
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  /// Carga los datos del usuario actual desde Firebase
+  Future<void> _loadUserData() async {
+    try {
+      // 1. Obtener el usuario actual de Auth
+      final User? user = FirebaseAuth.instance.currentUser;
+
+      if (user != null) {
+        // 2. Obtener el documento del usuario de Firestore
+        final DocumentSnapshot<Map<String, dynamic>> userDoc =
+            await FirebaseFirestore.instance
+                .collection('usuarios')
+                .doc(user.uid)
+                .get();
+        
+        if (mounted && userDoc.exists) {
+          // 3. Actualizar el estado con el nombre
+          setState(() {
+            _userName = userDoc.data()?['nombre'] ?? 'Cliente';
+          });
+        }
+      }
+    } catch (e) {
+      print("Error al cargar datos del usuario: $e");
+      if (mounted) {
+        setState(() {
+          _userName = 'Cliente'; // Valor por defecto en caso de error
+        });
+      }
+    }
+  }
+
+  /// Cierra la sesión del usuario y lo regresa al Login
+  Future<void> _signOut() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+      // Navegar a Login y eliminar todas las rutas anteriores
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/login',
+        (Route<dynamic> route) => false,
+      );
+    } catch (e) {
+      print("Error al cerrar sesión: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al cerrar sesión: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+  // --- FIN DE LÓGICA AÑADIDA ---
+
+  @override
   Widget build(BuildContext context) {
-    // Mismo color de fondo y AppBar que las pantallas anteriores
     return Scaffold(
       backgroundColor: Colors.grey[50], // Fondo muy claro
       appBar: AppBar(
         title: const Text(
-          'Inicio', // Título simple de bienvenida
+          'Inicio',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.blue[700],
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        // Quitar el botón de regreso automático (si es que aparece)
+        automaticallyImplyLeading: false, 
         centerTitle: true,
         actions: [
-          // Puedes agregar aquí un botón de perfil o logout si lo necesitas
+          // --- ¡BOTÓN DE CERRAR SESIÓN AÑADIDO! ---
           IconButton(
-            icon: const Icon(Icons.account_circle, color: Colors.white),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Configuración de Perfil')),
-              );
-            },
+            icon: const Icon(Icons.logout, color: Colors.white),
+            tooltip: 'Cerrar Sesión',
+            onPressed: _signOut,
           ),
         ],
       ),
@@ -41,13 +103,22 @@ class HomeClienteScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Mensaje de Bienvenida Profesional
+              // --- Mensaje de Bienvenida Dinámico ---
               const Text(
-                'Bienvenido, Juan Pérez', // Aquí usarías el nombre real del usuario
+                'Bienvenido,',
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
+                ),
+              ),
+              // El nombre aparece en una línea separada para evitar saltos de texto
+              Text(
+                _userName,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.blue[700],
                 ),
               ),
               const SizedBox(height: 8),
@@ -60,14 +131,8 @@ class HomeClienteScreen extends StatelessWidget {
               ),
               const SizedBox(height: 30),
 
-              // --- GRID DE OPCIONES (Tarjetas Interactivas) ---
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: 20,
-                mainAxisSpacing: 20,
-                childAspectRatio: 0.85, // Ajuste para evitar el overflow de píxeles
+              // --- REDISEÑO: DE GRIDVIEW A COLUMN ---
+              Column(
                 children: [
                   // Opción 1: Solicitar Servicio
                   _HomeOptionCard(
@@ -79,31 +144,36 @@ class HomeClienteScreen extends StatelessWidget {
                       // 🚀 NAVEGACIÓN A PANTALLA SERVICIOS
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const ServiceSelectionScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const ServiceSelectionScreen(),
+                        ),
                       );
                     },
                   ),
 
+                  const SizedBox(height: 16), // Espacio entre tarjetas
+
                   // Opción 2: Mi Cotización
                   _HomeOptionCard(
-                    title: 'Mi Cotización',
-                    subtitle: 'Ver estado y confirmar trabajo',
+                    title: 'Mis Cotizaciones', // Título actualizado
+                    subtitle: 'Ver estado y confirmar trabajos', // Subtítulo actualizado
                     icon: Icons.request_quote_rounded,
                     color: Colors.teal[700]!,
                     onTap: () {
                       // 🚀 NAVEGACIÓN A PANTALLA COTIZACIÓN
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const CotizacionScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const CotizacionScreen(),
+                        ),
                       );
                     },
                   ),
                 ],
               ),
+              // --- FIN DE REDISEÑO ---
               
               const SizedBox(height: 40),
-
-              // Sección Adicional
               Center(
                 child: Text(
                   'Estamos aquí para ayudarte. Si tienes dudas, contáctanos.',
@@ -111,7 +181,6 @@ class HomeClienteScreen extends StatelessWidget {
                   style: TextStyle(color: Colors.grey[500], fontSize: 13),
                 ),
               ),
-              
             ],
           ),
         ),
@@ -121,10 +190,10 @@ class HomeClienteScreen extends StatelessWidget {
 }
 
 // ---
-// Componente de Tarjeta de Opción (Elegante y Reusable)
+// Componente Rediseñado: _HomeOptionCard
+// Más limpio, sin estado y adaptado a un layout vertical.
 // ---
-
-class _HomeOptionCard extends StatefulWidget {
+class _HomeOptionCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
@@ -140,76 +209,65 @@ class _HomeOptionCard extends StatefulWidget {
   });
 
   @override
-  State<_HomeOptionCard> createState() => _HomeOptionCardState();
-}
-
-class _HomeOptionCardState extends State<_HomeOptionCard> {
-  // Estado para el efecto de Hover/Tap (retroalimentación visual)
-  bool _isHovering = false;
-
-  @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovering = true),
-      onExit: (_) => setState(() => _isHovering = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeInOut,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: _isHovering ? widget.color.withOpacity(0.6) : Colors.grey[200]!,
-              width: _isHovering ? 2 : 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: _isHovering ? widget.color.withOpacity(0.3) : Colors.grey.withOpacity(0.1),
-                spreadRadius: _isHovering ? 3 : 1,
-                blurRadius: _isHovering ? 15 : 8,
-                offset: const Offset(0, 5),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.start,
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey[200]!, width: 1),
+      ),
+      child: InkWell( // Añade efecto "splash" al tocar
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Row( // Layout horizontal: Icono a la izquierda, texto a la derecha
             children: [
-              // Icono principal
+              // Icono
               Icon(
-                widget.icon,
-                size: 48,
-                color: widget.color,
+                icon,
+                size: 40,
+                color: color,
               ),
               
-              const Spacer(), // Ocupa el espacio sobrante
+              const SizedBox(width: 20),
 
-              // Título
-              Text(
-                widget.title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+              // Columna de Textos
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Título
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    // Subtítulo
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
 
-              const SizedBox(height: 4),
-
-              // Subtítulo/Descripción
-              Text(
-                widget.subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              // Icono de flecha al final
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.grey[400],
+                size: 16,
               ),
             ],
           ),

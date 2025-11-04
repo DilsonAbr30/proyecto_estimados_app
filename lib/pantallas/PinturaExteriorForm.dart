@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:math'; // Para usar 'ceil' para redondear los días
 
 /// --- Widget del Formulario de Pintura Exterior ---
-/// Este es el widget que debes integrar en tu aplicación.
 class PinturaExteriorForm extends StatefulWidget {
   const PinturaExteriorForm({super.key});
 
@@ -51,6 +51,7 @@ class _PinturaExteriorFormState extends State<PinturaExteriorForm> {
   String? _condicionSuperficie;
   String? _calidadPintura;
 
+  // --- VALORES INICIALIZADOS ---
   bool _lavadoPresion = false;
   bool _pintarTrim = false;
   bool _trimColorDiferente = false;
@@ -67,43 +68,167 @@ class _PinturaExteriorFormState extends State<PinturaExteriorForm> {
     super.dispose();
   }
 
-  /// Función para manejar el envío del formulario
-void _submitForm() {
-  if (_formKey.currentState!.validate()) {
+  // -----------------------------------------------------------------
+  // --- ¡NUEVA FUNCIÓN! MOTOR DE CÁLCULO DE ESTIMADOS ---
+  // -----------------------------------------------------------------
+  /// Toma los datos del formulario y calcula el precio y tiempo.
+  /// ¡ESTA ES LA LÓGICA QUE PUEDES MODIFICAR!
+  Map<String, dynamic> _calcularEstimado(Map<String, dynamic> datos) {
     
-    // 1. Recolecta los datos (como ya lo haces)
-    final estimadoData = {
-      'servicio': 'Pintura Exterior',
-      'tipoPropiedad': _tipoPropiedad,
-      'perimetro': double.tryParse(_perimetroController.text) ?? 0,
-      'alturaPiso': double.tryParse(_alturaController.text) ?? 0,
-      'numPisos': int.tryParse(_pisosController.text) ?? 0,
-      'tipoSuperficie': _tipoSuperficie,
-      // ... todos los demás datos ...
-      'calidadPintura': _calidadPintura,
-      'fotos': _fotos,
+    // --- 1. Definir Precios Base (¡Modifica esto!) ---
+    const double precioBasePorM2 = 10.0; // Costo de labor por m²
+    const double costoMaterialEconomicoM2 = 2.0;
+    const double costoMaterialEstandarM2 = 3.5;
+    const double costoMaterialPremiumM2 = 5.0;
+    const double costoFijoLavadoPresion = 250.0; // Costo extra por lavado
+    const double diasPorM2 = 0.04; // 100 m² = 4 días de trabajo
+
+    // --- 2. Extraer Datos ---
+    double perimetro = datos['perimetro'] ?? 0.0;
+    double alturaPiso = datos['alturaPiso'] ?? 0.0;
+    int numPisos = datos['numPisos'] ?? 0;
+    String condicion = datos['condicionSuperficie'] ?? 'Buena (Solo limpieza)';
+    String propiedad = datos['tipoPropiedad'] ?? 'Casa de 1 piso';
+    String calidadPintura = datos['calidadPintura'] ?? 'Estándar (5-7 años)';
+    bool lavadoPresion = datos['lavadoPresion'] ?? false;
+    bool pintarTrim = datos['pintarTrim'] ?? false;
+    bool trimColorDiferente = datos['trimColorDiferente'] ?? false;
+
+    // --- 3. Calcular Área ---
+    // (Esta es una aproximación simple. En la vida real restarías ventanas)
+    double areaTotal = perimetro * (alturaPiso * numPisos);
+
+    // --- 4. Calcular Modificadores de Costo (Multiplicadores) ---
+    
+    // Modificador por Condición (Preparación)
+    double modCondicion = 1.0;
+    if (condicion == 'Regular (Lijado ligero)') {
+      modCondicion = 1.3; // 30% más caro por lijar
+    } else if (condicion == 'Mala (Lijado profundo, reparaciones)') {
+      modCondicion = 1.8; // 80% más caro por reparar
+    }
+
+    // Modificador por Altura (Andamios/Peligro)
+    double modAltura = 1.0;
+    if (propiedad == 'Casa de 2 pisos') {
+      modAltura = 1.2; // 20% más caro por escaleras
+    } else if (propiedad == 'Casa de 3+ pisos') {
+      modAltura = 1.5; // 50% más caro por andamios
+    }
+
+    // Modificador por 'Trim'
+    double costoExtraTrim = 0.0;
+    if (pintarTrim) {
+      costoExtraTrim += areaTotal * 0.2; // Costo base por encintar
+    }
+    if (trimColorDiferente) {
+      costoExtraTrim += areaTotal * 0.3; // Costo extra por doble encintado
+    }
+
+    // --- 5. Calcular Costos de Material y Labor ---
+    
+    // Costo de Material
+    double costoMaterialPorM2 = costoMaterialEstandarM2;
+    if (calidadPintura == 'Económica (1-3 años)') {
+      costoMaterialPorM2 = costoMaterialEconomicoM2;
+    } else if (calidadPintura == 'Premium (10+ años)') {
+      costoMaterialPorM2 = costoMaterialPremiumM2;
+    }
+    double costoMaterialTotal = areaTotal * costoMaterialPorM2;
+
+    // Costo de Labor
+    double costoLaborBase = areaTotal * precioBasePorM2;
+    double costoLaborModificado = costoLaborBase * modCondicion * modAltura;
+
+    // Costo Fijo por Lavado
+    double costoLavado = lavadoPresion ? costoFijoLavadoPresion : 0.0;
+
+    // --- 6. Calcular Total ---
+    double precioTotalEstimado = 
+        costoLaborModificado + 
+        costoMaterialTotal + 
+        costoExtraTrim + 
+        costoLavado;
+
+    // --- 7. Calcular Tiempo de Ejecución ---
+    double diasBase = areaTotal * diasPorM2;
+    double diasModificados = diasBase * modCondicion; // Reparaciones toman más tiempo
+    int diasLavado = lavadoPresion ? 1 : 0; // 1 día extra si se lava (lavado + secado)
+    
+    // Redondear siempre hacia ARRIBA al día entero más cercano
+    int tiempoTotalDias = (diasModificados + diasLavado).ceil(); 
+
+    // Asegurarse de que el mínimo sea 1 día
+    if (tiempoTotalDias < 1) {
+      tiempoTotalDias = 1;
+    }
+
+    print('--- CÁLCULO DE ESTIMADO ---');
+    print('Área Total: ${areaTotal.toStringAsFixed(2)} m²');
+    print('Costo Labor: \$${costoLaborModificado.toStringAsFixed(2)}');
+    print('Costo Material: \$${costoMaterialTotal.toStringAsFixed(2)}');
+    print('Costo Extras (Trim/Lavado): \$${(costoExtraTrim + costoLavado).toStringAsFixed(2)}');
+    print('PRECIO FINAL: \$${precioTotalEstimado.toStringAsFixed(2)}');
+    print('TIEMPO ESTIMADO: $tiempoTotalDias días');
+    print('---------------------------');
+
+    // Devolver los dos valores calculados
+    return {
+      'precioEstimado': precioTotalEstimado,
+      'tiempoEstimadoDias': tiempoTotalDias,
     };
-
-    // 2. NO envíes a Firebase todavía.
-    // print('--- Datos del Formulario ---'); // (Bueno para debug)
-
-    // 3. NAVEGA a la pantalla de ubicación y PASA LOS DATOS
-    //    como "arguments".
-    Navigator.pushNamed(
-      context, 
-      '/ubicacion', 
-      arguments: estimadoData, // <--- ¡Esta es la clave!
-    );
-
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Por favor, completa todos los campos requeridos.'),
-        backgroundColor: Colors.red,
-      ),
-    );
   }
-}
+
+  /// Función para manejar el envío del formulario
+  void _submitForm() {
+    if (_formKey.currentState!.validate()) {
+
+      // 1. Recolecta los datos (¡VERSIÓN CORREGIDA Y COMPLETA!)
+      final estimadoData = {
+        'servicio': 'Pintura Exterior',
+        'tipoPropiedad': _tipoPropiedad,
+        'perimetro': double.tryParse(_perimetroController.text) ?? 0.0,
+        'alturaPiso': double.tryParse(_alturaController.text) ?? 0.0,
+        'numPisos': int.tryParse(_pisosController.text) ?? 0,
+        'tipoSuperficie': _tipoSuperficie,
+        'condicionSuperficie': _condicionSuperficie,
+        'calidadPintura': _calidadPintura,
+        'lavadoPresion': _lavadoPresion,
+        'pintarTrim': _pintarTrim,
+        'trimColorDiferente': _trimColorDiferente,
+        'fotos': _fotos,
+      };
+
+      // 2. LLAMA AL MOTOR DE CÁLCULO
+      final calculos = _calcularEstimado(estimadoData);
+
+      // 3. COMBINA los datos del formulario + los datos calculados
+      final datosCompletosParaUbicacion = {
+        ...estimadoData, // Todos los datos del formulario
+        ...calculos,   // Añade 'precioEstimado' y 'tiempoEstimadoDias'
+      };
+      
+      // (Opcional: imprime para verificar)
+      print('--- Datos Completos para enviar a /ubicacion ---');
+      print(datosCompletosParaUbicacion);
+      print('------------------------------------------------');
+
+      // 4. NAVEGA a la pantalla de ubicación y PASA LOS DATOS COMPLETOS
+      Navigator.pushNamed(
+        context, 
+        '/ubicacion', 
+        arguments: datosCompletosParaUbicacion, // <--- ¡Esta es la clave!
+      );
+
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, completa todos los campos requeridos.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
   
   /// Función para simular la carga de fotos
   void _cargarFoto() {
@@ -124,14 +249,18 @@ void _submitForm() {
 
   @override
   Widget build(BuildContext context) {
-    // ---- EDICIÓN AQUÍ ----
-    // Agregamos un Scaffold para que este widget sea una pantalla completa.
-    // Esto proporciona el 'Material' necesario para los TextFields y
-    // el contexto para el 'ScaffoldMessenger'.
     return Scaffold(
+      // --- APPBAR MODIFICADA ---
       appBar: AppBar(
-        title: const Text('Estimado: Pintura Exterior'),
+        title: const Text(
+          'Pintura Exterior',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.blue[700],
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
+      // --- FIN DE LA MODIFICACIÓN ---
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -209,6 +338,7 @@ void _submitForm() {
 
                 // --- Sección Opciones Adicionales ---
                 _buildSectionTitle('Servicios Adicionales'),
+                // ---- ¡ONCHANGED AÑADIDO! ----
                 _buildCheckbox(
                   title: '¿Se necesita Lavado a Presión?',
                   subtitle: '(Recomendado para toda pintura exterior)',
@@ -219,6 +349,7 @@ void _submitForm() {
                     });
                   },
                 ),
+                // ---- ¡ONCHANGED AÑADIDO! ----
                 _buildCheckbox(
                   title: '¿Pintar el \'trim\'?',
                   subtitle: '(Marcos de ventanas, puertas, cornisas)',
@@ -235,10 +366,10 @@ void _submitForm() {
                 ),
                 
                 // --- Campo Condicional ---
-                // Solo se muestra si _pintarTrim es verdadero
                 if (_pintarTrim)
                   Padding(
                     padding: const EdgeInsets.only(left: 16.0, bottom: 8.0),
+                    // ---- ¡ONCHANGED AÑADIDO! ----
                     child: _buildCheckbox(
                       title: '¿El \'trim\' será de un color diferente?',
                       subtitle: '(Requiere más tiempo de encintado)',
@@ -278,7 +409,6 @@ void _submitForm() {
                   label: const Text('Añadir Foto'),
                   onPressed: _cargarFoto,
                 ),
-                // Muestra cuántas fotos se han "cargado"
                 if (_fotos.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 8.0),
@@ -293,7 +423,7 @@ void _submitForm() {
                 Center(
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.calculate),
-                    label: const Text('Obtener Estimado'),
+                    label: const Text('Continuar a Ubicación'), // Texto actualizado
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 32, vertical: 16),
@@ -313,7 +443,6 @@ void _submitForm() {
         ),
       ),
     );
-    // ---- FIN DE LA EDICIÓN ----
   }
 
   /// --- Widgets de Ayuda (Helpers) para construir el formulario ---

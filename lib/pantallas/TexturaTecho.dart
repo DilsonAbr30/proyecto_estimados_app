@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:math'; // Para usar 'ceil' para redondear los días
 
 // -----------------------------------------------------------------
 // --- Formulario: Aplicación de Textura en Cielo Falso ---
@@ -38,9 +39,96 @@ class _TexturaTechoFormState extends State<TexturaTechoForm> {
     super.dispose();
   }
 
-  // --- FUNCIÓN MODIFICADA ---
+  // -----------------------------------------------------------------
+  // --- ¡NUEVO! MOTOR DE CÁLCULO DE TEXTURA ---
+  // -----------------------------------------------------------------
+  Map<String, dynamic> _calcularEstimadoTextura(Map<String, dynamic> datos) {
+    
+    // --- 1. Definir Precios Base (¡Modifica esto!) ---
+    // (Incluye material de textura y labor base)
+    const double precioBasePorM2 = 7.0; 
+    const double horasPorM2 = 0.1; // 100 m² = 10 horas
+    
+    // --- 2. Extraer Datos ---
+    double largo = datos['largoHabitacion'] ?? 0.0;
+    double ancho = datos['anchoHabitacion'] ?? 0.0;
+    double altura = datos['alturaTecho'] ?? 2.5; // Asumir 2.5m si no se pone
+    String textura = datos['tipoTextura'] ?? 'Knockdown';
+    String estadoTecho = datos['estadoTecho'] ?? 'Ya está pintado';
+    String estadoHab = datos['estadoHabitacion'] ?? 'Vacía';
+
+    // --- 3. Calcular Área ---
+    double areaTotal = largo * ancho;
+    if (areaTotal == 0) {
+      return {'precioEstimado': 0.0, 'tiempoEstimadoDias': 0};
+    }
+
+    // --- 4. Calcular Modificadores (Multiplicadores) ---
+    
+    // Modificador por Tipo de Textura
+    double modTextura = 1.0;
+    if (textura == 'Popcorn (Palomitas)') {
+      modTextura = 1.3; // Más material y más sucio
+    } else if (textura == 'Lisa (Nivel 4/5)') {
+      modTextura = 2.5; // MUCHO más trabajo y tiempo (múltiples capas de lijado)
+    }
+
+    // Modificador por Estado del Techo (Preparación)
+    double modEstado = 1.0;
+    if (estadoTecho == 'Drywall nuevo (sin \'primer\')') {
+      modEstado = 1.25; // 25% más por aplicar primer
+    }
+
+    // Modificador por Muebles (¡Muy importante!)
+    // Cubrir todo en una habitación amueblada toma mucho tiempo
+    double modMuebles = 1.0;
+    if (estadoHab == 'Amueblada') {
+      modMuebles = 1.8; // 80% más de tiempo/costo por enmascarar todo
+    }
+
+    // Modificador por Altura (andamios)
+    double modAltura = 1.0;
+    if (altura > 3.0) { // Si el techo mide más de 3 metros
+      modAltura = 1.4; // 40% más caro por armar andamios
+    }
+
+    // --- 5. Calcular Total ---
+    double precioTotalEstimado = precioBasePorM2 * areaTotal * modTextura * modEstado * modMuebles * modAltura;
+    double tiempoTotalHoras = horasPorM2 * areaTotal * modTextura * modEstado * modMuebles * modAltura;
+
+    // Asegurar un precio mínimo por visita
+    if (precioTotalEstimado < 200.0) {
+      precioTotalEstimado = 200.0;
+    }
+
+    // --- 6. Calcular Tiempo de Ejecución ---
+    // Convertir horas a días (asumiendo 8 horas por día de trabajo)
+    int tiempoTotalDias = (tiempoTotalHoras / 8).ceil();
+    if (tiempoTotalDias < 1) {
+      tiempoTotalDias = 1; // Mínimo 1 día
+    }
+
+    print('--- CÁLCULO DE TEXTURA ---');
+    print('Área Total: ${areaTotal.toStringAsFixed(2)} m²');
+    print('Precio Base: \$${(precioBasePorM2 * areaTotal).toStringAsFixed(2)}');
+    print('Modificadores (Textura, Estado, Muebles, Altura): ${(modTextura * modEstado * modMuebles * modAltura).toStringAsFixed(2)}x');
+    print('PRECIO FINAL: \$${precioTotalEstimado.toStringAsFixed(2)}');
+    print('TIEMPO ESTIMADO: $tiempoTotalDias días');
+    print('---------------------------');
+
+    // Devolver los dos valores calculados
+    return {
+      'precioEstimado': precioTotalEstimado,
+      'tiempoEstimadoDias': tiempoTotalDias,
+    };
+  }
+  // --- FIN DEL MOTOR DE CÁLCULO ---
+
+
+  // --- FUNCIÓN SUBMIT MODIFICADA ---
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
+      
       // 1. Recolectar todos los datos en un Map
       final estimadoData = {
         'servicio': 'Aplicacion Textura Techo',
@@ -53,21 +141,26 @@ class _TexturaTechoFormState extends State<TexturaTechoForm> {
         'cantidadFotos': _cantidadFotos,
       };
 
-      // Simulación de envío
-      print('--- Datos del Formulario Textura (para enviar a /ubicacion) ---');
-      print(estimadoData);
-      print('-------------------------------------------');
+      // 2. LLAMA AL MOTOR DE CÁLCULO
+      final calculos = _calcularEstimadoTextura(estimadoData);
 
-      // 2. NAVEGAR a la pantalla de ubicación y PASA LOS DATOS
-      //    como "arguments".
+      // 3. COMBINA los datos del formulario + los datos calculados
+      final datosCompletosParaUbicacion = {
+        ...estimadoData, // Todos los datos del formulario
+        ...calculos,   // Añade 'precioEstimado' y 'tiempoEstimadoDias'
+      };
+
+      // (Opcional: imprime para verificar)
+      print('--- Datos Completos para enviar a /ubicacion ---');
+      print(datosCompletosParaUbicacion);
+      print('------------------------------------------------');
+
+      // 4. NAVEGAR a la pantalla de ubicación y PASA LOS DATOS COMPLETOS
       Navigator.pushNamed(
         context, 
         '/ubicacion', 
-        arguments: estimadoData, // <--- Esta es la clave
+        arguments: datosCompletosParaUbicacion, // <--- Esta es la clave
       );
-
-      // El SnackBar de "enviado" ahora se mostrará en la pantalla de Ubicación
-      // después de enviar a Firebase.
 
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -96,10 +189,17 @@ class _TexturaTechoFormState extends State<TexturaTechoForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // --- APPBAR MODIFICADA ---
       appBar: AppBar(
-        title: const Text('Estimado: Textura de Techo'),
-        // El color del AppBar se tomará del 'primarySwatch' de tu MaterialApp
+        title: const Text(
+          'Textura de Techo', // Título actualizado
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.blue[700],
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
+      // --- FIN DE LA MODIFICACIÓN ---
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -191,7 +291,7 @@ class _TexturaTechoFormState extends State<TexturaTechoForm> {
                   Center(
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.calculate),
-                      label: const Text('Obtener Estimado'),
+                      label: const Text('Continuar a Ubicación'), // Texto actualizado
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                         textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart'; // Descomentar si usas Firestore aquí directamente
+import 'package:cloud_firestore/cloud_firestore.dart'; // Descomentar si usas Firestore aquí directamente
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LocationSelectionScreen extends StatefulWidget {
   const LocationSelectionScreen({super.key});
@@ -51,11 +52,28 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
         print("Error: No se recibieron datos del estimado anterior al intentar enviar.");
         return;
       }
+
+      // --- ¡AÑADE ESTA LÓGICA! ---
+    // 1. Obtener el usuario actual
+    final User? usuarioActual = FirebaseAuth.instance.currentUser;
+
+    // 2. Chequeo de seguridad
+    if (usuarioActual == null) {
+      // Si por alguna razón no hay usuario, muestra error y no sigas.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: No se pudo identificar al usuario. Inicia sesión de nuevo.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    // --- FIN DE LA ADICIÓN ---
       
       final Map<String, dynamic> ubicacionData = {
         'direccion': _direccionController.text,
-        'ciudad': _ciudadController.text,
-        'estado': _estadoController.text,
+        'municipio': _ciudadController.text,
+        'departamento': _estadoController.text,
         'codigoPostal': _codigoPostalController.text,
       };
 
@@ -64,14 +82,16 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
         'ubicacion': ubicacionData, 
         'estado_estimado': 'pendiente', 
         'fechaCreacion': DateTime.now().toIso8601String(),
-        // 'userId': ... 
+        // --- ¡ESTA ES LA LÍNEA CLAVE! ---
+        'userId': usuarioActual.uid,
+      // --- FIN ---
       };
 
       print('--- ENVIANDO ESTIMADO COMPLETO A FIREBASE ---');
       print(estimadoCompleto);
 
       // Aquí va tu código para enviar a Firebase
-      // FirebaseFirestore.instance.collection('estimados').add(estimadoCompleto);
+      FirebaseFirestore.instance.collection('estimados').add(estimadoCompleto);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -142,8 +162,8 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
                 TextFormField(
                   controller: _ciudadController,
                   decoration: InputDecoration(
-                    labelText: 'Ciudad',
-                    hintText: 'Ej: Ciudad de México',
+                    labelText: 'Municipio',
+                    hintText: 'Ej: Apopa',
                     prefixIcon: const Icon(Icons.location_city),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     filled: true,
@@ -155,8 +175,8 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
                 TextFormField(
                   controller: _estadoController,
                   decoration: InputDecoration(
-                    labelText: 'Estado / Región',
-                    hintText: 'Ej: CDMX',
+                    labelText: 'Departamento',
+                    hintText: 'Ej: San Salvador',
                     prefixIcon: const Icon(Icons.map),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     filled: true,
