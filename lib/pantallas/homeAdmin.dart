@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'cotizaciones_pendientes.dart';
+// --- ¡IMPOORTACIÓN AÑADIDA! ---
+import 'cotizaciones_aceptadas.dart'; 
 
 // Widget reutilizable para las tarjetas del administrador
 class AdminActionCard extends StatelessWidget {
   final String title;
+// ... (resto de tu widget AdminActionCard, no necesita cambios) ...
   final String subtitle;
   final IconData icon;
   final Color color;
@@ -159,10 +162,19 @@ class HomeAdminScreen extends StatelessWidget {
                     'Monitorea el progreso de los servicios ya aceptados.',
                 icon: Icons.verified,
                 color: Colors.green.shade700,
+                
+                // --- ¡NAVEGACIÓN ACTUALIZADA! ---
                 onTap: () {
                   // Acción para Cotizaciones Confirmadas
-                  debugPrint('Navegar a Cotizaciones Confirmadas');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          const CotizacionesAceptadasScreen(), // <-- Nueva pantalla
+                    ),
+                  );
                 },
+                // --- FIN DE LA ACTUALIZACIÓN ---
               ),
 
               const SizedBox(height: 40),

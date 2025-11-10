@@ -19,6 +19,10 @@ import 'pantallas/PinturaInterior.dart';
 import 'pantallas/TexturaTecho.dart';
 import 'pantallas/cotizaciones_pendientes.dart';
 import 'pantallas/detalles_cotizacion_pendiente.dart';
+import 'pantallas/cotizaciones_aceptadas.dart';
+// --- ¡IMPORTACIÓN AÑADIDA! ---
+import 'pantallas/detalles_cotizacion_aceptada.dart';
+
 
 // --- FUNCIÓN MAIN MODIFICADA ---
 void main() async {
@@ -63,9 +67,13 @@ class MyApp extends StatelessWidget {
         '/PinturaExteriorForm': (context) => const PinturaExteriorForm(),
         '/PinturaInterior': (context) => const PinturaInteriorScreen(),
         '/TexturaTecho': (context) => const TexturaTechoForm(),
+        
+        // --- RUTAS DEL ADMIN AÑADIDAS/ACTUALIZADAS ---
         '/cotizaciones_pendientes': (context) =>
             const CotizacionesPendientesScreen(),
-        '/detalles_cotizacion': (context) {
+        
+        // Esta ruta es para los detalles de las PENDIENTES
+        '/detalles_cotizacion_pendiente': (context) {
           final args =
               ModalRoute.of(context)!.settings.arguments
                   as Map<String, dynamic>;
@@ -74,6 +82,22 @@ class MyApp extends StatelessWidget {
             cotizacionData: args['cotizacionData'],
           );
         },
+        
+        // --- ¡NUEVAS RUTAS AÑADIDAS! ---
+        '/cotizaciones_aceptadas': (context) =>
+            const CotizacionesAceptadasScreen(),
+
+        // Esta ruta es para los detalles de las ACEPTADAS
+        '/detalles_cotizacion_aceptada': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return DetallesCotizacionAceptadaScreen(
+            cotizacionId: args['cotizacionId'],
+            cotizacionData: args['cotizacionData'],
+          );
+        },
+        // --- FIN DE LA ADICIÓN ---
       },
     );
   }
