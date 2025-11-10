@@ -17,22 +17,23 @@ import 'pantallas/homeAdmin.dart';
 import 'pantallas/PinturaExteriorForm.dart';
 import 'pantallas/PinturaInterior.dart';
 import 'pantallas/TexturaTecho.dart';
-
+import 'pantallas/cotizaciones_pendientes.dart';
+import 'pantallas/detalles_cotizacion_pendiente.dart';
 
 // --- FUNCIÓN MAIN MODIFICADA ---
-void main() async { // 1. Convertir a async
+void main() async {
+  // 1. Convertir a async
   // 2. Asegurar que los bindings de Flutter estén listos
-  WidgetsFlutterBinding.ensureInitialized(); 
+  WidgetsFlutterBinding.ensureInitialized();
 
   // 3. Inicializar Firebase (sin opciones)
   //    De esta forma, buscará automáticamente el google-services.json
   await Firebase.initializeApp(); // <--- 2. ESTA ES LA LÍNEA MODIFICADA
-  
+
   // 4. Correr la app
   runApp(const MyApp());
 }
 // --- FIN DE LA MODIFICACIÓN ---
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -43,17 +44,17 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'App de Pintura',
       theme: ThemeData(primarySwatch: Colors.blue),
-      
+
       // 5. Cambiar la ruta inicial a /login
       //    Así, la app siempre pedirá autenticación primero.
       //    Si quieres que inicie en registro, puedes poner '/registro'
-      initialRoute: '/login', 
-      
+      initialRoute: '/login',
+
       routes: {
         '/registro': (context) => const RegistroScreen(),
         '/login': (context) => const LoginScreen(),
-        '/detalles': (context) => const DetallesScreen(location: '',),
-        '/ubicacion': (context) => const LocationSelectionScreen(), 
+        '/detalles': (context) => const DetallesScreen(location: ''),
+        '/ubicacion': (context) => const LocationSelectionScreen(),
         '/admin': (context) => const PanelAdministracion(),
         '/servicios': (context) => const ServiceSelectionScreen(),
         '/cotizacion': (context) => const CotizacionScreen(),
@@ -62,6 +63,17 @@ class MyApp extends StatelessWidget {
         '/PinturaExteriorForm': (context) => const PinturaExteriorForm(),
         '/PinturaInterior': (context) => const PinturaInteriorScreen(),
         '/TexturaTecho': (context) => const TexturaTechoForm(),
+        '/cotizaciones_pendientes': (context) =>
+            const CotizacionesPendientesScreen(),
+        '/detalles_cotizacion': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return DetallesCotizacionPendienteScreen(
+            cotizacionId: args['cotizacionId'],
+            cotizacionData: args['cotizacionData'],
+          );
+        },
       },
     );
   }

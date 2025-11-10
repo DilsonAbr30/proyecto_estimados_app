@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'admin.dart'; // Importamos la pantalla de gestión de cotizaciones
+import 'cotizaciones_pendientes.dart';
 
 // Widget reutilizable para las tarjetas del administrador
 class AdminActionCard extends StatelessWidget {
@@ -56,10 +56,7 @@ class AdminActionCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -132,10 +129,7 @@ class HomeAdminScreen extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
                 child: Text(
                   'Selecciona una opción para administrar los procesos.',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.black54,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
               ),
               const SizedBox(height: 20),
@@ -150,7 +144,10 @@ class HomeAdminScreen extends StatelessWidget {
                   // Navegación a la pantalla admin.dart
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const PanelAdministracion()),
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          const CotizacionesPendientesScreen(),
+                    ),
                   );
                 },
               ),
@@ -158,7 +155,8 @@ class HomeAdminScreen extends StatelessWidget {
               // 2. Cotizaciones confirmadas
               AdminActionCard(
                 title: 'Cotizaciones confirmadas',
-                subtitle: 'Monitorea el progreso de los servicios ya aceptados.',
+                subtitle:
+                    'Monitorea el progreso de los servicios ya aceptados.',
                 icon: Icons.verified,
                 color: Colors.green.shade700,
                 onTap: () {
@@ -166,9 +164,9 @@ class HomeAdminScreen extends StatelessWidget {
                   debugPrint('Navegar a Cotizaciones Confirmadas');
                 },
               ),
-              
+
               const SizedBox(height: 40),
-              
+
               const Center(
                 child: Text(
                   'Tu panel de control avanzado.',
