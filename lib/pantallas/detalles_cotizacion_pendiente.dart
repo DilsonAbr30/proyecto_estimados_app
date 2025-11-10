@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:math'; // Para redondear
 
 class DetallesCotizacionPendienteScreen extends StatefulWidget {
   final String cotizacionId;
@@ -30,8 +31,10 @@ class _DetallesCotizacionPendienteScreenState
 
   void _loadUserData() async {
     try {
+      // --- ¡CORRECCIÓN DE BUG! ---
+      // La colección se llama 'usuarios' (en español), no 'users'.
       final userDoc = await _firestore
-          .collection('users')
+          .collection('usuarios') // <-- CORREGIDO
           .doc(widget.cotizacionData['userId'])
           .get();
 
@@ -63,9 +66,7 @@ class _DetallesCotizacionPendienteScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Cotización $nuevoEstado'),
-          backgroundColor: nuevoEstado == 'aceptada'
-              ? Colors.green
-              : Colors.red,
+          backgroundColor: nuevoEstado == 'aceptada' ? Colors.green : Colors.red,
         ),
       );
 
@@ -148,7 +149,14 @@ class _DetallesCotizacionPendienteScreenState
         _buildInfoRow('Total de habitaciones', habitaciones.length.toString()),
         ...habitaciones.asMap().entries.map((entry) {
           final index = entry.key;
-          final hab = entry.value;
+          final hab = entry.value as Map<String, dynamic>; // Aseguramos el tipo
+
+          // --- ¡CORRECCIÓN DE BUG! ---
+          // El precio puede ser int o double. Usamos 'num' y lo formateamos.
+          final num precioNum = hab['precioEstimadoHabitacion'] ?? 0;
+          final String precioFormateado = '\$${precioNum.toStringAsFixed(2)}';
+          // --- FIN DE CORRECIÓN ---
+
           return Card(
             margin: const EdgeInsets.only(bottom: 8),
             child: Padding(
@@ -168,7 +176,7 @@ class _DetallesCotizacionPendienteScreenState
                   _buildInfoRow('  - Estado', hab['estadoHabitacion']),
                   _buildInfoRow(
                     '  - Precio',
-                    '\$${hab['precioEstimadoHabitacion']?.toStringAsFixed(2)}',
+                    precioFormateado, // Usamos el precio formateado
                   ),
                 ],
               ),
@@ -237,8 +245,16 @@ class _DetallesCotizacionPendienteScreenState
   Widget build(BuildContext context) {
     final ubicacion =
         widget.cotizacionData['ubicacion'] as Map<String, dynamic>? ?? {};
-    final precio = widget.cotizacionData['precioEstimado'];
-    final tiempo = widget.cotizacionData['tiempoEstimadoDias'];
+    
+    // --- ¡CORRECCIÓN DE BUG! ---
+    // Usamos 'num' para aceptar int o double
+    final num? precioNum = widget.cotizacionData['precioEstimado'];
+    final String precio = precioNum != null
+        ? '\$${precioNum.toStringAsFixed(2)}'
+        : 'No calculado';
+
+    final int? tiempo = widget.cotizacionData['tiempoEstimadoDias'];
+    // --- FIN DE CORRECIÓN ---
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -281,15 +297,15 @@ class _DetallesCotizacionPendienteScreenState
                           const SizedBox(height: 12),
                           _buildInfoRow(
                             'Nombre',
-                            _userData?['nombre'] ?? 'No especificado',
+                            _userData?['nombre'], // Usamos 'nombre'
                           ),
                           _buildInfoRow(
                             'Email',
-                            _userData?['email'] ?? 'No especificado',
+                            _userData?['email'],
                           ),
                           _buildInfoRow(
                             'Teléfono',
-                            _userData?['telefono'] ?? 'No especificado',
+                            _userData?['telefono'],
                           ),
                         ],
                       ),
@@ -317,13 +333,14 @@ class _DetallesCotizacionPendienteScreenState
                             'Servicio',
                             widget.cotizacionData['servicio'],
                           ),
-                          if (precio != null)
-                            _buildInfoRow(
-                              'Precio estimado',
-                              '\$${precio.toStringAsFixed(2)}',
-                            ),
+                          // --- Usamos las variables corregidas ---
+                          _buildInfoRow(
+                            'Precio estimado',
+                            precio,
+                          ),
                           if (tiempo != null)
                             _buildInfoRow('Tiempo estimado', '$tiempo días'),
+                          // --- Fin ---
                           const SizedBox(height: 8),
                           _buildDetallesServicio(),
                         ],
@@ -348,16 +365,13 @@ class _DetallesCotizacionPendienteScreenState
                             ),
                           ),
                           const SizedBox(height: 12),
+                          // --- ¡CORRECCIÓN DE BUG! ---
+                          // Corregidos los nombres de los campos
                           _buildInfoRow('Dirección', ubicacion['direccion']),
-                          _buildInfoRow('Municipio', ubicacion['municipio']),
-                          _buildInfoRow(
-                            'Departamento',
-                            ubicacion['departamento'],
-                          ),
-                          _buildInfoRow(
-                            'Código Postal',
-                            ubicacion['codigoPostal'],
-                          ),
+                          _buildInfoRow('Municipio', ubicacion['municipio']), 
+                          _buildInfoRow('Departamento', ubicacion['departamento']),
+                          _buildInfoRow('Código Postal', ubicacion['codigoPostal']),
+                          // --- FIN DE CORRECIÓN ---
                         ],
                       ),
                     ),

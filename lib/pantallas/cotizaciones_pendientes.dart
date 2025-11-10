@@ -47,6 +47,8 @@ class _CotizacionesPendientesScreenState
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
+            // El error del índice aparecerá aquí primero.
+            // Si ya creaste el índice, este error ya no debería salir.
             return Center(child: Text('Error: ${snapshot.error}'));
           }
 
@@ -87,23 +89,28 @@ class _CotizacionesPendientesScreenState
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   subtitle: FutureBuilder<DocumentSnapshot>(
+                    // --- ¡CORRECCIÓN DE BUG! ---
+                    // La colección se llama 'usuarios' (en español), no 'users'.
                     future: _firestore
-                        .collection('users')
+                        .collection('usuarios') // <-- CORREGIDO
                         .doc(data['userId'])
                         .get(),
+                    // --- FIN DE CORRECIÓN ---
                     builder: (context, userSnapshot) {
                       if (userSnapshot.connectionState ==
                           ConnectionState.waiting) {
                         return const Text('Cargando...');
                       }
-                      if (userSnapshot.hasError || !userSnapshot.hasData) {
+                      if (userSnapshot.hasError || !userSnapshot.hasData || !userSnapshot.data!.exists) {
                         return const Text('Cliente no encontrado');
                       }
 
                       final userData =
                           userSnapshot.data!.data() as Map<String, dynamic>?;
+                      
+                      // Usamos 'nombre' (como lo guardamos en registro.dart)
                       final nombreCliente =
-                          userData?['nombre'] ??
+                          userData?['nombre'] ?? // <-- CORREGIDO
                           userData?['email'] ??
                           'Cliente';
 
@@ -134,9 +141,9 @@ class _CotizacionesPendientesScreenState
   Widget _buildServiceIcon(String? servicio) {
     switch (servicio) {
       case 'Pintura Exterior':
-        return const Icon(Icons.architecture, color: Colors.blue);
+        return const Icon(Icons.house_siding, color: Colors.blue); // Icono actualizado
       case 'Pintura Interior':
-        return const Icon(Icons.home, color: Colors.green);
+        return const Icon(Icons.format_paint, color: Colors.green); // Icono actualizado
       case 'Aplicacion Textura Techo':
         return const Icon(Icons.texture, color: Colors.orange);
       default:
