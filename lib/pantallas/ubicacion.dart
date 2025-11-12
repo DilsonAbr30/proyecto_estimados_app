@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Descomentar si usas Firestore aquí directamente
+import 'package:cloud_firestore/cloud_firestore.dart'; // ¡Importante para FieldValue!
 import 'package:firebase_auth/firebase_auth.dart';
 
 class LocationSelectionScreen extends StatefulWidget {
@@ -13,8 +13,8 @@ class LocationSelectionScreen extends StatefulWidget {
 class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
   final _formKey = GlobalKey<FormState>();
   final _direccionController = TextEditingController();
-  final _ciudadController = TextEditingController();
-  final _estadoController = TextEditingController();
+  final _ciudadController = TextEditingController(); // Este es 'ciudad'
+  final _estadoController = TextEditingController(); // Este es 'estado'
   final _codigoPostalController = TextEditingController();
 
   Map<String, dynamic>? _estimadoData;
@@ -53,44 +53,45 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
         return;
       }
 
-      // --- ¡AÑADE ESTA LÓGICA! ---
-    // 1. Obtener el usuario actual
-    final User? usuarioActual = FirebaseAuth.instance.currentUser;
+      final User? usuarioActual = FirebaseAuth.instance.currentUser;
 
-    // 2. Chequeo de seguridad
-    if (usuarioActual == null) {
-      // Si por alguna razón no hay usuario, muestra error y no sigas.
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error: No se pudo identificar al usuario. Inicia sesión de nuevo.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-    // --- FIN DE LA ADICIÓN ---
+      if (usuarioActual == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: No se pudo identificar al usuario. Inicia sesión de nuevo.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
       
+      // --- ¡CORRECCIÓN DE BUG DE UBICACIÓN! ---
+      // Guardamos como 'ciudad' y 'estado' para que coincida con la pantalla de detalles
       final Map<String, dynamic> ubicacionData = {
         'direccion': _direccionController.text,
-        'municipio': _ciudadController.text,
-        'departamento': _estadoController.text,
+        'ciudad': _ciudadController.text, // <-- CORREGIDO
+        'estado': _estadoController.text, // <-- CORREGIDO
         'codigoPostal': _codigoPostalController.text,
       };
+      // --- FIN DE LA CORRECCIÓN ---
 
       final Map<String, dynamic> estimadoCompleto = {
         ..._estimadoData!, 
         'ubicacion': ubicacionData, 
         'estado_estimado': 'pendiente', 
-        'fechaCreacion': DateTime.now().toIso8601String(),
-        // --- ¡ESTA ES LA LÍNEA CLAVE! ---
+        
+        // --- ¡CORRECCIÓN DE BUG DE FECHA! ---
+        // 'fechaCreacion': DateTime.now().toIso8601String(), // <-- MALO (es String)
+        'fechaCreacion': FieldValue.serverTimestamp(), // <-- BUENO (es Timestamp)
+        // --- FIN DE LA CORRECCIÓN ---
+
         'userId': usuarioActual.uid,
-      // --- FIN ---
       };
 
       print('--- ENVIANDO ESTIMADO COMPLETO A FIREBASE ---');
       print(estimadoCompleto);
 
-      // Aquí va tu código para enviar a Firebase
+      // Descomentado para que SÍ guarde en Firebase
       FirebaseFirestore.instance.collection('estimados').add(estimadoCompleto);
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -116,12 +117,9 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      // ---- EDICIÓN AQUÍ ----
-      // 1. Envolvemos el body en SingleChildScrollView
       body: SingleChildScrollView(
         child: Container(
           color: Colors.grey[100],
-          // 2. Ajustamos el padding para que haya espacio abajo también
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
           child: Form( 
             key: _formKey,
@@ -159,11 +157,13 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
                   validator: (value) => (value == null || value.isEmpty) ? 'Este campo es requerido' : null,
                 ),
                 const SizedBox(height: 16),
+                
+                // --- ¡TEXTOS CORREGIDOS! ---
                 TextFormField(
                   controller: _ciudadController,
                   decoration: InputDecoration(
-                    labelText: 'Municipio',
-                    hintText: 'Ej: Apopa',
+                    labelText: 'Ciudad', // <-- CORREGIDO
+                    hintText: 'Ej: San Salvador', // <-- CORREGIDO
                     prefixIcon: const Icon(Icons.location_city),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     filled: true,
@@ -175,8 +175,8 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
                 TextFormField(
                   controller: _estadoController,
                   decoration: InputDecoration(
-                    labelText: 'Departamento',
-                    hintText: 'Ej: San Salvador',
+                    labelText: 'Estado / Departamento', // <-- CORREGIDO
+                    hintText: 'Ej: San Salvador', // <-- CORREGIDO
                     prefixIcon: const Icon(Icons.map),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     filled: true,
@@ -184,6 +184,8 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
                   ),
                   validator: (value) => (value == null || value.isEmpty) ? 'Este campo es requerido' : null,
                 ),
+                // --- FIN DE LA CORRECCIÓN ---
+                
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _codigoPostalController,
@@ -199,7 +201,6 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
                   validator: (value) => (value == null || value.isEmpty) ? 'Este campo es requerido' : null,
                 ),
                 
-                // 3. Quitamos el Spacer() y lo cambiamos por un espacio fijo
                 const SizedBox(height: 32), 
                 
                 Container(
@@ -230,8 +231,6 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
           ),
         ),
       ),
-      // ---- FIN DE LA EDICIÓN ----
     );
   }
 }
-

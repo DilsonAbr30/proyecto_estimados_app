@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:proyeto_estimados/pantallas/servicios.dart';
-import 'package:proyeto_estimados/pantallas/cotizacion.dart';
+// import 'package:proyeto_estimados/pantallas/cotizacion.dart'; // <--- Reemplazado
+import 'package:proyeto_estimados/pantallas/mis_cotizaciones.dart'; // <--- ¡ESTE ES EL IMPORT BUENO!
 // --- ¡IMPORTACIONES AÑADIDAS! ---
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -32,14 +33,16 @@ class _HomeClienteScreenState extends State<HomeClienteScreen> {
         // 2. Obtener el documento del usuario de Firestore
         final DocumentSnapshot<Map<String, dynamic>> userDoc =
             await FirebaseFirestore.instance
-                .collection('usuarios')
+                .collection('usuarios') // <-- Asegúrate que sea 'usuarios'
                 .doc(user.uid)
                 .get();
         
         if (mounted && userDoc.exists) {
           // 3. Actualizar el estado con el nombre
+          // --- ¡CORREGIDO! --- 
+          // (Tus usuarios se guardan con 'nombreCompleto', no 'nombre')
           setState(() {
-            _userName = userDoc.data()?['nombre'] ?? 'Cliente';
+            _userName = userDoc.data()?['nombreCompleto'] ?? 'Cliente';
           });
         }
       }
@@ -160,13 +163,15 @@ class _HomeClienteScreenState extends State<HomeClienteScreen> {
                     icon: Icons.request_quote_rounded,
                     color: Colors.teal[700]!,
                     onTap: () {
-                      // 🚀 NAVEGACIÓN A PANTALLA COTIZACIÓN
+                      // --- ¡NAVEGACIÓN ACTUALIZADA! ---
+                      // Esta es la línea que arregla tu problema
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const CotizacionScreen(),
+                          builder: (context) => const MisCotizacionesScreen(), // <-- A la nueva pantalla
                         ),
                       );
+                      // --- FIN DE LA ACTUALIZACIÓN ---
                     },
                   ),
                 ],
@@ -191,7 +196,6 @@ class _HomeClienteScreenState extends State<HomeClienteScreen> {
 
 // ---
 // Componente Rediseñado: _HomeOptionCard
-// Más limpio, sin estado y adaptado a un layout vertical.
 // ---
 class _HomeOptionCard extends StatelessWidget {
   final String title;
