@@ -42,7 +42,7 @@ class _HomeClienteScreenState extends State<HomeClienteScreen> {
           // --- ¡CORREGIDO! --- 
           // (Tus usuarios se guardan con 'nombreCompleto', no 'nombre')
           setState(() {
-            _userName = userDoc.data()?['nombreCompleto'] ?? 'Cliente';
+            _userName = userDoc.data()?['nombre'] ?? 'Cliente';
           });
         }
       }

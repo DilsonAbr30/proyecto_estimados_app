@@ -529,8 +529,8 @@ class _DetallesMiCotizacionScreenState
                           
                           // --- BUG CORREGIDO ---
                           _buildInfoRow('Dirección', ubicacion['direccion']),
-                          _buildInfoRow('Ciudad', ubicacion['ciudad']), // <-- Corregido
-                          _buildInfoRow('Estado', ubicacion['estado']), // <-- Corregido
+                          _buildInfoRow('Ciudad', ubicacion['municipio']), // <-- Corregido
+                          _buildInfoRow('Estado', ubicacion['departamento']), // <-- Corregido
                           _buildInfoRow('Código Postal', ubicacion['codigoPostal']),
                           
                         ],

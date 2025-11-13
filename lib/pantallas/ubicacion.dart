@@ -69,8 +69,8 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
       // Guardamos como 'ciudad' y 'estado' para que coincida con la pantalla de detalles
       final Map<String, dynamic> ubicacionData = {
         'direccion': _direccionController.text,
-        'ciudad': _ciudadController.text, // <-- CORREGIDO
-        'estado': _estadoController.text, // <-- CORREGIDO
+        'municipio': _ciudadController.text, // <-- CORREGIDO
+        'departamento': _estadoController.text, // <-- CORREGIDO
         'codigoPostal': _codigoPostalController.text,
       };
       // --- FIN DE LA CORRECCIÓN ---
@@ -162,7 +162,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
                 TextFormField(
                   controller: _ciudadController,
                   decoration: InputDecoration(
-                    labelText: 'Ciudad', // <-- CORREGIDO
+                    labelText: 'Municipio', // <-- CORREGIDO
                     hintText: 'Ej: San Salvador', // <-- CORREGIDO
                     prefixIcon: const Icon(Icons.location_city),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -175,7 +175,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
                 TextFormField(
                   controller: _estadoController,
                   decoration: InputDecoration(
-                    labelText: 'Estado / Departamento', // <-- CORREGIDO
+                    labelText: 'Departamento', // <-- CORREGIDO
                     hintText: 'Ej: San Salvador', // <-- CORREGIDO
                     prefixIcon: const Icon(Icons.map),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

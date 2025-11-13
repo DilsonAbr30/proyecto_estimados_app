@@ -38,7 +38,7 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         
         // --- CAMBIO AQUÍ: SUBIMOS EL MIN SDK A 23 ---
-        minSdk = 23 
+        minSdk = flutter.minSdkVersion 
         // --------------------------------------------
         
         targetSdk = flutter.targetSdkVersion

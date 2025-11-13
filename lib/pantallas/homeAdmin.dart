@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'cotizaciones_pendientes.dart';
-// --- ¡IMPOORTACIÓN AÑADIDA! ---
 import 'cotizaciones_aceptadas.dart'; 
+// --- ¡IMPORTACIONES NUEVAS! ---
+import 'cotizaciones_trabajos_aceptados.dart';
+import 'cotizaciones_rechazadas.dart';
+// --- ¡IMPORTACIÓN AÑADIDA PARA EL LOGOUT! ---
+import 'package:firebase_auth/firebase_auth.dart';
 
 // Widget reutilizable para las tarjetas del administrador
-class AdminActionCard extends StatelessWidget {
+class AdminActionCard
+// ... (Tu widget AdminActionCard se queda exactamente igual) ...
+extends StatelessWidget {
   final String title;
-// ... (resto de tu widget AdminActionCard, no necesita cambios) ...
   final String subtitle;
   final IconData icon;
   final Color color;
@@ -78,10 +83,15 @@ class HomeAdminScreen extends StatelessWidget {
   const HomeAdminScreen({super.key});
 
   // Estilo del AppBar consistente con detalles.dart
-  PreferredSizeWidget _buildAppBar() {
+  // --- ¡MODIFICACIÓN 1! ---
+  // Ahora la función RECIBE el BuildContext
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       centerTitle: true,
       elevation: 0,
+      // --- ¡MODIFICACIÓN! ---
+      // Se quita el automaticallyImplyLeading para que no salga la flecha de "atrás"
+      automaticallyImplyLeading: false,
       title: const Text(
         'Panel de Administración',
         style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
@@ -95,13 +105,30 @@ class HomeAdminScreen extends StatelessWidget {
           ),
         ),
       ),
+      // --- ¡BOTÓN DE LOGOUT AÑADIDO! ---
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.logout, color: Colors.white),
+          tooltip: 'Cerrar Sesión',
+          // --- ¡MODIFICACIÓN 2! ---
+          // Ahora SÍ tenemos acceso al 'context'
+          onPressed: () async {
+            // Lógica de Logout
+            await FirebaseAuth.instance.signOut(); // <-- LÍNEA AÑADIDA
+            // Esta navegación te lleva a la pantalla de Login
+            Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+          },
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar(),
+      // --- ¡MODIFICACIÓN 3! ---
+      // Le pasamos el 'context' a la función
+      appBar: _buildAppBar(context),
       body: Container(
         // Fondo ligero consistente con el resto de la aplicación
         decoration: const BoxDecoration(
@@ -137,14 +164,13 @@ class HomeAdminScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // 1. Cotizaciones pendientes (Navega a admin.dart)
+              // 1. Cotizaciones pendientes
               AdminActionCard(
                 title: 'Cotizaciones pendientes',
-                subtitle: 'Revisa y asigna nuevos servicios para cotización.',
+                subtitle: 'Revisa y edita los nuevos estimados.',
                 icon: Icons.schedule_send,
                 color: Colors.orange.shade700,
                 onTap: () {
-                  // Navegación a la pantalla admin.dart
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -155,28 +181,57 @@ class HomeAdminScreen extends StatelessWidget {
                 },
               ),
 
-              // 2. Cotizaciones confirmadas
+              // 2. Cotizaciones confirmadas (por admin)
               AdminActionCard(
-                title: 'Cotizaciones confirmadas',
-                subtitle:
-                    'Monitorea el progreso de los servicios ya aceptados.',
-                icon: Icons.verified,
-                color: Colors.green.shade700,
-                
-                // --- ¡NAVEGACIÓN ACTUALIZADA! ---
+                title: 'Cotizaciones enviadas',
+                subtitle: 'Enviadas al cliente, esperando su respuesta.',
+                icon: Icons.check_circle_outline, // Icono actualizado
+                color: Colors.blue.shade700, // Color actualizado
                 onTap: () {
-                  // Acción para Cotizaciones Confirmadas
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) =>
-                          const CotizacionesAceptadasScreen(), // <-- Nueva pantalla
+                          const CotizacionesAceptadasScreen(), 
                     ),
                   );
                 },
-                // --- FIN DE LA ACTUALIZACIÓN ---
               ),
 
+              // --- ¡NUEVO! 3. Trabajos Aceptados (por cliente) ---
+              AdminActionCard(
+                title: 'Trabajos Aceptados',
+                subtitle: 'Confirmados por el cliente. Listos para agendar.',
+                icon: Icons.construction_rounded, // Icono nuevo
+                color: Colors.green.shade700, // Color actualizado
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          const CotizacionesTrabajosAceptadosScreen(), // <-- Nueva pantalla
+                    ),
+                  );
+                },
+              ),
+
+              // --- ¡NUEVO! 4. Historial Rechazado ---
+              AdminActionCard(
+                title: 'Historial Rechazado',
+                subtitle: 'Estimados denegados por admin o cliente.',
+                icon: Icons.cancel_outlined, // Icono nuevo
+                color: Colors.red.shade700, // Color nuevo
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          const CotizacionesRechazadasScreen(), // <-- Nueva pantalla
+                    ),
+                  );
+                },
+              ),
+              
               const SizedBox(height: 40),
 
               const Center(
